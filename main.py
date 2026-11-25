@@ -47,7 +47,7 @@ def flaws(text):
     return found
 
 
-def put(path):
+def put(path, quiet=False):
     """Write the entry line to path, then read it back and compare."""
     bad = flaws(ENTRY)
     if bad:
@@ -62,7 +62,8 @@ def put(path):
     if back != ENTRY:
         print(f"refused: wrote {ENTRY!r} but read back {back!r}", file=sys.stderr)
         return 1
-    print(f"entry written: {len(ENTRY)} characters, {len(ENTRY.encode('utf-8'))} bytes -> {target}")
+    if not quiet:
+        print(f"entry written: {len(ENTRY)} characters, {len(ENTRY.encode('utf-8'))} bytes -> {target}")
     return 0
 
 
@@ -71,7 +72,7 @@ def check():
     bad = flaws(ENTRY)
     with tempfile.TemporaryDirectory() as folder:
         probe = Path(folder) / "entry.txt"
-        if put(probe) != 0:
+        if put(probe, quiet=True) != 0:
             bad.append("the write step failed")
         else:
             raw = probe.read_bytes()
