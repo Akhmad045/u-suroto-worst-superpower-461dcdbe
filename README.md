@@ -4,34 +4,36 @@
 [![Rank](https://make.fun/badge/u-suroto-worst-superpower-461dcdbe/Akhmad045/u-suroto-worst-superpower-461dcdbe/rank.svg)](https://make.fun/bounty/u-suroto-worst-superpower-461dcdbe)
 [![Reward](https://make.fun/badge/u-suroto-worst-superpower-461dcdbe/Akhmad045/u-suroto-worst-superpower-461dcdbe/reward.svg)](https://make.fun/bounty/u-suroto-worst-superpower-461dcdbe)
 
-One line, under 140 characters, inventing the most useless superpower
-imaginable — written for the
-[Worst Superpower](https://make.fun/bounty/u-suroto-worst-superpower-461dcdbe)
-bounty on [make.fun](https://make.fun).
+An entry for the [Worst Superpower](https://make.fun/bounty/u-suroto-worst-superpower-461dcdbe)
+bounty on [make.fun](https://make.fun): invent, in a single line of at most
+140 characters, the most useless superpower imaginable.
 
-## The entry
+## The line
 
 > I can detect lies instantly, but only my own, and only after I've already told them.
 
-Lie detection is a grand, classic power — turned back on its owner and
-switched on a second too late. The hero blurts the lie, and only then
-does his superpower helpfully confirm it. Useless in a complete little
-system: the right power, the wrong person, the wrong moment.
+Lie detection is a grand, classic superpower — and here it is pointed at the
+one person it can never help, and switched on one sentence too late. The
+hero blurts out the lie, and only then does his power helpfully confirm
+that yes, that was a lie. Right power, wrong person, wrong moment: a whole
+tiny system of uselessness in one breath.
 
-## How it works
+## Running it
 
-`main.py` writes that single line to `/output/entry.txt` and nothing else.
-It validates the line against the competition gate first (UTF-8, 1–140
-characters, single line, no leading or trailing white space).
+`main.py` carries the line and writes it, exactly as written, to
+`/output/entry.txt`. Before writing it checks the line against the gate:
+UTF-8, one line, 1 to 140 characters, no blank padding, no trailing
+newline. If anything is off, it refuses and says why instead of writing
+a file the gate would reject.
 
 ```sh
-python3 main.py                 # writes /output/entry.txt
-python3 main.py --self-test     # validates the entry against the gate
+python3 main.py              # deliver the line to /output/entry.txt
+python3 main.py --self-test  # check the line against the gate, then stop
 ```
 
 ## Referral
 
-Built with make.fun — referral code `4g7knchf`.
+Made with make.fun — referral code `4g7knchf`.
 
 ## License
 

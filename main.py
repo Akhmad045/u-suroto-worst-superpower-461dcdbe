@@ -1,112 +1,101 @@
 #!/usr/bin/env python3
-"""Worst Superpower — entry program.
+"""Worst Superpower: a program that delivers one useless superpower.
 
-Writes one one-line invention of the most useless superpower to
-/output/entry.txt. The line must pass the gate: UTF-8 text of 1 to 140
-characters, not only white space, a single line.
-
-Usage:
-    python3 main.py [--output PATH] [--self-test]
+The entry is a single line inventing the most useless superpower the
+author could think of, and this program's only job is to hand that line
+to the sealed gate untouched: one line of UTF-8 text, between 1 and 140
+characters, with no padding, no extra newline, and nothing else in the
+file. The gate reads /output/entry.txt; the judge reads what the gate
+passed. Everything below exists to make sure the file holds exactly
+that line, byte for byte, and to fail loudly if it does not.
 """
 
 import argparse
-import os
 import sys
+import tempfile
+from pathlib import Path
 
-ENTRY = (
-    "I can detect lies instantly, but only my own, "
-    "and only after I've already told them."
-)
+ENTRY = "I can detect lies instantly, but only my own, and only after I've already told them."
 
-DEFAULT_OUTPUT = "/output/entry.txt"
+OUT = Path("/output/entry.txt")
+
+MAX_CHARS = 140
 
 
-def validate(text):
-    """Check the entry against the competition gate. Returns a list of
-    problems (empty when valid)."""
-    problems = []
+def flaws(text):
+    """List every way the entry line breaks the gate's rules."""
+    found = []
     if not isinstance(text, str):
-        return ["entry is not text"]
-    if not (1 <= len(text) <= 140):
-        problems.append(
-            "length %d characters, must be 1-140" % len(text))
-    if not text.strip():
-        problems.append("entry is only white space")
-    if not any(ch.isalnum() for ch in text):
-        problems.append("entry has no letters or digits")
+        return ["the entry is not text"]
+    size = len(text)
+    if size < 1 or size > MAX_CHARS:
+        found.append(f"the entry is {size} characters long; the gate allows 1 to {MAX_CHARS}")
     if text != text.strip():
-        problems.append("leading or trailing white space")
+        found.append("the entry has leading or trailing blank space")
+    if not text.strip():
+        found.append("the entry is blank space only")
     if "\n" in text or "\r" in text:
-        problems.append("entry must be a single line")
-    if any(ord(ch) < 0x20 and ch not in "\t" for ch in text):
-        problems.append("entry contains control characters")
+        found.append("the entry runs over more than one line")
+    if any(ord(c) < 32 and c != "\t" for c in text):
+        found.append("the entry holds a control character")
+    if not any(c.isalnum() for c in text):
+        found.append("the entry holds no letters or digits at all")
     try:
         text.encode("utf-8")
-    except UnicodeEncodeError as exc:
-        problems.append("entry is not valid UTF-8: %s" % exc)
-    return problems
+    except UnicodeEncodeError as why:
+        found.append(f"the entry is not valid UTF-8: {why}")
+    return found
 
 
-def write_entry(path):
-    problems = validate(ENTRY)
-    if problems:
-        for problem in problems:
-            print("gate failure: %s" % problem, file=sys.stderr)
+def put(path):
+    """Write the entry line to path, then read it back and compare."""
+    bad = flaws(ENTRY)
+    if bad:
+        for item in bad:
+            print(f"refused: {item}", file=sys.stderr)
         return 1
-    directory = os.path.dirname(path)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
-    with open(path, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(ENTRY)
-    # Read it back: a write that silently truncates or mangles the line
-    # must fail loudly here, not pass the gate check on a stale file.
-    with open(path, "r", encoding="utf-8", newline="") as handle:
-        written = handle.read()
-    if written != ENTRY:
-        print("gate failure: wrote %r, read back %r"
-              % (ENTRY, written), file=sys.stderr)
+    target = Path(path)
+    if target.parent != Path("."):
+        target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(ENTRY.encode("utf-8"))
+    back = target.read_bytes().decode("utf-8")
+    if back != ENTRY:
+        print(f"refused: wrote {ENTRY!r} but read back {back!r}", file=sys.stderr)
         return 1
-    print("wrote %d characters (%d bytes) to %s"
-          % (len(ENTRY), len(ENTRY.encode("utf-8")), path))
+    print(f"entry written: {len(ENTRY)} characters, {len(ENTRY.encode('utf-8'))} bytes -> {target}")
     return 0
 
 
-def self_test():
-    """Validate the entry text and a round-trip write/read."""
-    problems = validate(ENTRY)
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmp:
-        probe = os.path.join(tmp, "entry.txt")
-        if write_entry(probe) != 0:
-            problems.append("write failed")
+def check():
+    """Prove the entry passes the gate and survives a write/read round trip."""
+    bad = flaws(ENTRY)
+    with tempfile.TemporaryDirectory() as folder:
+        probe = Path(folder) / "entry.txt"
+        if put(probe) != 0:
+            bad.append("the write step failed")
         else:
-            with open(probe, "rb") as handle:
-                raw = handle.read()
-            decoded = raw.decode("utf-8")
-            if decoded != ENTRY:
-                problems.append("round-trip mismatch")
+            raw = probe.read_bytes()
+            if raw.decode("utf-8") != ENTRY:
+                bad.append("the round trip changed the text")
             if raw.endswith(b"\n"):
-                problems.append("output ends with a newline")
-    if problems:
-        for problem in problems:
-            print("self-test FAIL: %s" % problem, file=sys.stderr)
+                bad.append("the file ends with a newline")
+    if bad:
+        for item in bad:
+            print(f"self-test FAIL: {item}", file=sys.stderr)
         return 1
-    print("self-test OK: %d chars, %d bytes, single line, no padding"
-          % (len(ENTRY), len(ENTRY.encode("utf-8"))))
+    print(f"self-test OK: {len(ENTRY)} characters, {len(ENTRY.encode('utf-8'))} bytes, one line, no padding")
     return 0
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", default=DEFAULT_OUTPUT,
-                        help="where to write the entry (default: %(default)s)")
-    parser.add_argument("--self-test", action="store_true",
-                        help="validate the entry against the gate and exit")
+def cli(argv=None):
+    parser = argparse.ArgumentParser(description="Deliver the Worst Superpower entry line to /output/entry.txt.")
+    parser.add_argument("--output", default=str(OUT), help="destination file (default: %(default)s)")
+    parser.add_argument("--self-test", action="store_true", help="check the line against the gate and stop")
     args = parser.parse_args(argv)
     if args.self_test:
-        return self_test()
-    return write_entry(args.output)
+        return check()
+    return put(args.output)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(cli())
